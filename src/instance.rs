@@ -36,6 +36,8 @@ pub enum ShadingLanguage {
     Cl,
     /// OpenGL Shading Language 4.3+.
     Glsl,
+    /// Metal Shading Language 1.0
+    Metal,
 }
 
 impl Drop for Instance {
@@ -77,7 +79,7 @@ impl Instance {
     /// Initializes the library and returns a new instance.
     #[cfg(target_os = "macos")]
     pub fn new() -> Result<Instance, Error> {
-        api::cl::instance::create()
+        api::metal::instance::create()
     }
 
     /// Initializes the library and returns a new instance.

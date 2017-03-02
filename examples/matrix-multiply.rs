@@ -18,7 +18,7 @@ use std::io::Cursor;
 use std::mem;
 use std::os::raw::c_void;
 
-const DEFAULT_MATRIX_LENGTH: usize = 512;
+const DEFAULT_MATRIX_LENGTH: usize = 2;
 
 // Naïve matrix multiplication, just as a demo.
 //
@@ -50,8 +50,11 @@ pub fn main() {
     let source = match instance.shading_language() {
         ShadingLanguage::Cl => CL_SHADER,
         ShadingLanguage::Glsl => GL_SHADER,
+        ShadingLanguage::Metal => METAL_SHADER,
     };
     let program = device.create_program(source).unwrap();
+
+    println!("{:?}", program.data());
 
     let mut thread_rng = rand::thread_rng();
 
@@ -72,20 +75,20 @@ pub fn main() {
         (2, Uniform::U32(matrix_length as u32)),
     ];
     queue.submit_compute(&program, &groups, &uniforms, &[]).unwrap();
-    let event = queue.submit_sync_event().unwrap();
+    // let event = queue.submit_sync_event().unwrap();
 
-    let mut result_bytes = vec![0; matrix_length * matrix_length * mem::size_of::<f32>()];
-    queue.submit_read_buffer(&mut result_bytes, &output, 0, &[event]).unwrap();
-    queue.submit_sync_event().unwrap().wait().unwrap();
+    // let mut result_bytes = vec![0; matrix_length * matrix_length * mem::size_of::<f32>()];
+    // queue.submit_read_buffer(&mut result_bytes, &output, 0, &[event]).unwrap();
+    // queue.submit_sync_event().unwrap().wait().unwrap();
 
-    let mut result = Vec::with_capacity(matrix_length * matrix_length);
-    let mut result_cursor = Cursor::new(result_bytes);
-    while let Ok(value) = result_cursor.read_f32::<NativeEndian>() {
-        result.push(value)
-    }
+    // let mut result = Vec::with_capacity(matrix_length * matrix_length);
+    // let mut result_cursor = Cursor::new(result_bytes);
+    // while let Ok(value) = result_cursor.read_f32::<NativeEndian>() {
+    //     result.push(value)
+    // }
 
-    println!("\nResult:");
-    print(&result, matrix_length);
+    // println!("\nResult:");
+    // print(&result, matrix_length);
 }
 
 fn print(matrix: &[f32], matrix_length: usize) {
@@ -131,6 +134,20 @@ static GL_SHADER: &'static str = r#"
         for (uint i = 0u; i < uLength; i++)
             value += gInput[i * uLength + destColumn] * gInput[destRow * uLength + i];
         gOutput[destRow * uLength + destColumn] = value;
+    }
+"#;
+
+static METAL_SHADER: &'static str = r#"
+    using namespace metal;
+
+    kernel void matrix_multiply(const device float *input [[ buffer(0) ]],
+                                device float *output [[ buffer(1) ]],
+                                const device uint *length [[ buffer(2) ]],
+                                const uint2 position [[ thread_position_in_grid ]]) {
+        float value = 0.0f;
+        for (uint i = 0; i < length[0]; i++)
+            value += input[i * length[0] + position[0]] * input[position[1] * length[0] + i];
+        output[position[1] * length[0] + position[0]] = value;
     }
 "#;
 

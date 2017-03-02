@@ -20,7 +20,11 @@ git = "https://github.com/bjz/glfw-rs.git"
 git = "https://github.com/pcwalton/lord-drawquaad.git"
 
 [target.'cfg(target_os = "macos")'.dependencies]
+bitflags = "0.7"
+byteorder = "1"
+cocoa = "0.7"
 core-foundation = "0.2"
+objc = "0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies.io-surface]
 git = "https://github.com/pcwalton/rust-io-surface.git"
